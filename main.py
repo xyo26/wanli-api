@@ -1,15 +1,15 @@
 from decimal import Decimal
-
+from dataclasses import dataclass
 from flask import Flask, jsonify
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy_serializer import SerializerMixin
 
 app = Flask('__main__')
 app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://wanli:wanli@localhost:5432/wanliDB"
 db = SQLAlchemy(app)
 
 
-class FabricModel(db.Model, SerializerMixin):
+@dataclass
+class FabricModel(db.Model):
     __tablename__ = 'fabric_stock'
     __table_args__ = {'schema': 'wanli_schema'}
 
@@ -39,7 +39,7 @@ def health_check():
 @app.route('/fabrics', methods=['GET'])
 def get_fabrics():
     fabrics = FabricModel.query.all()
-    return jsonify([fabric.to_dict() for fabric in fabrics])
+    return jsonify(fabrics)
 
 
 if __name__ == '__main__':
