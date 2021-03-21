@@ -1,33 +1,34 @@
-from flask import Flask, request
+from decimal import Decimal
+
+from flask import Flask, jsonify
 from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
+from sqlalchemy_serializer import SerializerMixin
 
 app = Flask('__main__')
 app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://wanli:wanli@localhost:5432/wanliDB"
 db = SQLAlchemy(app)
-migrate = Migrate(app, db)
 
 
-class FabricModel(db.Model):
-    __table_args__ = {'schema': 'wanli_mgr'}
-    __tablename__ = 'FABRIC_STOCK'
+class FabricModel(db.Model, SerializerMixin):
+    __tablename__ = 'fabric_stock'
+    __table_args__ = {'schema': 'wanli_schema'}
 
-    FABRIC_ID = db.Column(db.Integer, primary_key=True)
-    TYPE = db.Column(db.String)
-    SPECIFICATION = db.Column(db.String)
-    DYE_INDICATOR = db.Column(db.String)
-    COLOR = db.Column(db.Boolean)
-    AMOUNT = db.Column(db.Integer)
+    fabric_id: int = db.Column(db.Integer, primary_key=True)
+    fabric_type: str = db.Column(db.String)
+    fabric_spec: str = db.Column(db.String)
+    dye_indicator: bool = db.Column(db.Boolean)
+    color: str = db.Column(db.String)
+    amount: Decimal = db.Column(db.Numeric)
 
-    def __init__(self, type, specification, dye_indicator, color, amount):
-        self.TYPE = type
-        self.SPECIFICATION = specification
-        self.DYE_INDICATOR = dye_indicator
-        self.COLOR = color
-        self.AMOUNT = amount
+    def __init__(self, fabric_type, fabric_spec, dye_indicator, color, amount):
+        self.fabric_type = fabric_type
+        self.fabric_spec = fabric_spec
+        self.dye_indicator = dye_indicator
+        self.color = color
+        self.amount = amount
 
     def __repr__(self):
-        return f"<Fabric {self.SPECIFICATION}>"
+        return f"<Fabric {self.fabric_spec}>"
 
 
 @app.route('/healthcheck')
@@ -35,26 +36,10 @@ def health_check():
     return 'OK'
 
 
-@app.route("/<your_name>")
-def hello(your_name):
-    return 'hello ' + your_name
-
-
 @app.route('/fabrics', methods=['GET'])
 def get_fabrics():
-    # return {"msg": "looks good"}
-    if request.method == 'POST':
-        return {"error": "Invalid request method"}
-
-    elif request.method == 'GET':
-        fabrics = FabricModel.query.all()
-        results = [
-            {
-                "specification": fabric.SPECIFICATION,
-                "type": fabric.TYPE
-            } for fabric in fabrics]
-
-        return {"count": len(results), "fabrics": results}
+    fabrics = FabricModel.query.all()
+    return jsonify([fabric.to_dict() for fabric in fabrics])
 
 
 if __name__ == '__main__':
